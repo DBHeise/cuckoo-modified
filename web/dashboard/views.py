@@ -1,9 +1,11 @@
-# Copyright (C) 2010-2015 Cuckoo Foundation.
+﻿# Copyright (C) 2010-2015 Cuckoo Foundation.
 # This file is part of Cuckoo Sandbox - http://www.cuckoosandbox.org
 # See the file 'docs/LICENSE' for copying permission.
 
 import sys
 import time
+import datetime
+
 
 from django.conf import settings
 from django.template import RequestContext
@@ -56,18 +58,20 @@ def index(request):
     tasks += db.list_tasks(offset=offset, status=TASK_REPORTED)
 
     if tasks:
+        tasksubset = [x for x in tasks if timestamp(x.started_on) >= timestamp(datetime.datetime.today() - timedelta(days=30))]
+
         # Get the time when the first task started.
-        started = min(timestamp(task.started_on) for task in tasks)
+        started = min(timestamp(task.started_on) for task in tasksubset)
 
         # Get the time when the last task completed.
-        completed = max(timestamp(task.completed_on) for task in tasks)
+        completed = max(timestamp(task.completed_on) for task in tasksubset)
 
         # Get the amount of tasks that actually completed.
-        finished = len(tasks)
+        finished = len(tasksubset)
 
         # It has happened that for unknown reasons completed and started were
         # equal in which case an exception is thrown, avoid this.
-        if started and completed and int(completed - started):
+        if int(completed - started):
             hourly = 60 * 60 * finished / (completed - started)
         else:
             hourly = 0
